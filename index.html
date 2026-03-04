@@ -399,8 +399,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Status *</label>
-                    <select id="status" required>
+                    <label>Status</label>
+                    <select id="status">
                         <option value="not-started">Not Started</option>
                         <option value="ongoing">Ongoing</option>
                         <option value="completed">Completed</option>
@@ -633,7 +633,6 @@
                 const form = new FormData();
                 if (response.result.files.length > 0) {
                     const fileId = response.result.files[0].id;
-                    form.append('file', blob);
                     await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
                         method: 'PATCH',
                         headers: new Headers({'Authorization': 'Bearer ' + accessToken}),
@@ -681,7 +680,7 @@
                 'not-started': '○ Not Started',
                 'discard': '✕ Discard'
             };
-            return labels[status] || status;
+            return labels[status] || '○ Not Started';
         }
         function renderTasks() {
             const container = document.getElementById('tasksContainer');
@@ -737,6 +736,7 @@
             uploadedFiles = {docs: [], photos: []};
             document.getElementById('modalTitle').textContent = 'Add New Task';
             document.getElementById('taskForm').reset();
+            document.getElementById('status').value = 'not-started';
             document.getElementById('docsList').innerHTML = '';
             document.getElementById('photosList').innerHTML = '';
             document.getElementById('errorMessage').style.display = 'none';
@@ -767,7 +767,7 @@
                 const formData = {
                     id: taskId,
                     category: document.getElementById('category').value,
-                    status: document.getElementById('status').value,
+                    status: document.getElementById('status').value || 'not-started',
                     taskName: document.getElementById('taskName').value,
                     subTaskName: document.getElementById('subTaskName').value,
                     taskDate: document.getElementById('taskDate').value,
@@ -851,16 +851,16 @@
             document.getElementById('category').value = task.category;
             document.getElementById('status').value = task.status || 'not-started';
             document.getElementById('taskName').value = task.taskName;
-            document.getElementById('subTaskName').value = task.subTaskName;
+            document.getElementById('subTaskName').value = task.subTaskName || '';
             document.getElementById('taskDate').value = task.taskDate;
-            document.getElementById('startTime').value = task.startTime;
-            document.getElementById('endTime').value = task.endTime;
-            document.getElementById('description').value = task.description;
-            document.getElementById('businessName').value = task.businessName;
-            document.getElementById('contactNominee').value = task.contactNominee;
-            document.getElementById('contactEmail').value = task.contactEmail;
-            document.getElementById('notes').value = task.notes;
-            document.getElementById('comments').value = task.comments;
+            document.getElementById('startTime').value = task.startTime || '';
+            document.getElementById('endTime').value = task.endTime || '';
+            document.getElementById('description').value = task.description || '';
+            document.getElementById('businessName').value = task.businessName || '';
+            document.getElementById('contactNominee').value = task.contactNominee || '';
+            document.getElementById('contactEmail').value = task.contactEmail || '';
+            document.getElementById('notes').value = task.notes || '';
+            document.getElementById('comments').value = task.comments || '';
             document.getElementById('errorMessage').style.display = 'none';
             document.getElementById('taskModal').classList.add('active');
         }
