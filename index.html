@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Task Manager - Google Drive</title>
+    <title>Family Task Manager</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
@@ -37,17 +37,8 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
         }
-        .auth-btn:hover { background: #357ae8; }
-        .user-info {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            margin-left: 15px;
-        }
+        .user-info { margin-left: 15px; }
         .sync-status {
             display: inline-block;
             padding: 4px 12px;
@@ -57,6 +48,68 @@
         }
         .sync-status.synced { background: #10b981; color: white; }
         .sync-status.syncing { background: #f59e0b; color: white; }
+        
+        /* Status Filters */
+        .filters-section {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .filters-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .status-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .status-filter-btn {
+            padding: 8px 16px;
+            border: 2px solid;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            background: white;
+        }
+        .status-filter-btn.filter-completed {
+            border-color: #10b981;
+            color: #10b981;
+        }
+        .status-filter-btn.filter-completed.active {
+            background: #10b981;
+            color: white;
+        }
+        .status-filter-btn.filter-ongoing {
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+        .status-filter-btn.filter-ongoing.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .status-filter-btn.filter-not-started {
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+        .status-filter-btn.filter-not-started.active {
+            background: #f59e0b;
+            color: white;
+        }
+        .status-filter-btn.filter-discard {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+        .status-filter-btn.filter-discard.active {
+            background: #ef4444;
+            color: white;
+        }
+        
         .tabs {
             display: flex;
             gap: 10px;
@@ -70,7 +123,6 @@
             border-radius: 20px;
             cursor: pointer;
             font-size: 14px;
-            transition: all 0.3s;
         }
         .tab.active { background: #667eea; color: white; }
         .add-task-btn {
@@ -82,13 +134,7 @@
             font-size: 16px;
             cursor: pointer;
             margin-bottom: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .add-task-btn:hover { background: #5568d3; }
-        .add-task-btn:disabled { background: #ccc; cursor: not-allowed; }
         .modal {
             display: none;
             position: fixed;
@@ -112,12 +158,7 @@
             overflow-y: auto;
         }
         .form-group { margin-bottom: 20px; }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
-        }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
         input, select, textarea {
             width: 100%;
             padding: 10px;
@@ -125,43 +166,11 @@
             border-radius: 5px;
             font-size: 14px;
         }
-        textarea { min-height: 80px; resize: vertical; }
-        .file-input-label {
-            display: inline-block;
-            padding: 8px 16px;
-            background: #f0f0f0;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .file-input-label:hover { background: #e0e0e0; }
-        input[type="file"] { display: none; }
-        .file-list { margin-top: 10px; }
-        .file-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            margin-bottom: 5px;
-            font-size: 13px;
-        }
-        .file-item button {
-            background: #ff4757;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-        }
+        textarea { min-height: 80px; }
         .btn-group { display: flex; gap: 10px; margin-top: 20px; }
-        .btn { flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; }
         .btn-primary { background: #667eea; color: white; }
-        .btn-secondary { background: #e0e0e0; color: #333; }
-        .btn-danger { background: #ff4757; color: white; }
-        .btn-success { background: #10b981; color: white; }
+        .btn-secondary { background: #e0e0e0; }
         .tasks-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -172,32 +181,6 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-        }
-        .task-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        .task-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 10px;
-        }
-        .task-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            flex: 1;
-        }
-        .task-category {
-            background: #667eea;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            margin-left: 10px;
-            white-space: nowrap;
         }
         .task-status {
             display: inline-block;
@@ -211,59 +194,7 @@
         .status-ongoing { background: #dbeafe; color: #1e40af; }
         .status-not-started { background: #fef3c7; color: #92400e; }
         .status-discard { background: #fee2e2; color: #991b1b; }
-        .task-subtitle { color: #666; font-size: 14px; margin-bottom: 10px; }
-        .task-date { color: #999; font-size: 13px; margin-bottom: 10px; }
-        .task-description { color: #666; font-size: 14px; margin-bottom: 10px; line-height: 1.5; }
-        .task-details {
-            font-size: 13px;
-            color: #666;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #f0f0f0;
-        }
-        .task-attachments { margin-top: 10px; }
-        .attachment-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 8px;
-            background: #f0f0f0;
-            border-radius: 4px;
-            margin: 2px;
-            font-size: 12px;
-            text-decoration: none;
-            color: #667eea;
-        }
-        .attachment-link:hover { background: #e0e0e0; }
-        .task-actions { display: flex; gap: 10px; margin-top: 15px; }
-        .task-btn { flex: 1; padding: 8px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
-        .task-btn-view { background: #667eea; color: white; }
-        .task-btn-delete { background: #ff4757; color: white; }
-        .empty-state { text-align: center; padding: 60px 20px; color: white; }
-        .empty-state h2 { margin-bottom: 10px; }
-        .loading { text-align: center; padding: 40px; color: white; }
-        .error-message {
-            background: #fee;
-            color: #c33;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        .info-message {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        .upload-progress {
-            margin-top: 10px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            font-size: 12px;
-        }
+        .task-btn { flex: 1; padding: 8px; border: none; border-radius: 5px; cursor: pointer; background: #667eea; color: white; }
         .status-buttons {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -277,56 +208,9 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
-            transition: all 0.2s;
-        }
-        .status-btn-completed {
-            border-color: #10b981;
-            color: #10b981;
-            background: white;
-        }
-        .status-btn-completed:hover {
-            background: #10b981;
-            color: white;
-        }
-        .status-btn-ongoing {
-            border-color: #3b82f6;
-            color: #3b82f6;
-            background: white;
-        }
-        .status-btn-ongoing:hover {
-            background: #3b82f6;
-            color: white;
-        }
-        .status-btn-not-started {
-            border-color: #f59e0b;
-            color: #f59e0b;
-            background: white;
-        }
-        .status-btn-not-started:hover {
-            background: #f59e0b;
-            color: white;
-        }
-        .status-btn-discard {
-            border-color: #ef4444;
-            color: #ef4444;
-            background: white;
-        }
-        .status-btn-discard:hover {
-            background: #ef4444;
-            color: white;
-        }
-        .status-btn-delete {
-            border-color: #dc2626;
-            background: #dc2626;
-            color: white;
-        }
-        .status-btn-delete:hover {
-            background: #b91c1c;
         }
         @media (max-width: 768px) {
             .tasks-grid { grid-template-columns: 1fr; }
-            .tabs { font-size: 12px; }
-            .tab { padding: 6px 12px; }
         }
     </style>
 </head>
@@ -334,17 +218,11 @@
     <div class="container">
         <div class="header">
             <h1>📋 Family Task Manager</h1>
-            <p>Manage tasks with Google Drive storage</p>
-            
             <div class="auth-section">
-                <button id="authBtn" class="auth-btn" onclick="handleAuth()">
-                    🔐 Sign in with Google
-                </button>
+                <button id="authBtn" class="auth-btn" onclick="handleAuth()">🔐 Sign in with Google</button>
                 <span id="userInfo" class="user-info" style="display: none;"></span>
             </div>
-            
             <span id="syncStatus" class="sync-status synced">✓ Ready</span>
-            
             <div class="tabs">
                 <button class="tab active" data-category="all">All Tasks</button>
                 <button class="tab" data-category="travel">✈️ Travel</button>
@@ -360,26 +238,23 @@
             </div>
         </div>
 
-        <div class="info-message">
-            <strong>📁 Google Drive Integration:</strong> This app stores your task data and files directly in your Google Drive. 
-            Both you and your wife can access the same tasks by signing in with Google accounts that have access to the shared Drive folder.
+        <div class="filters-section">
+            <div class="filters-title">📊 Filter by Status:</div>
+            <div class="status-filters">
+                <button class="status-filter-btn filter-completed active" onclick="toggleStatusFilter('completed')">✓ Completed</button>
+                <button class="status-filter-btn filter-ongoing active" onclick="toggleStatusFilter('ongoing')">⟳ Ongoing</button>
+                <button class="status-filter-btn filter-not-started active" onclick="toggleStatusFilter('not-started')">○ Not Started</button>
+                <button class="status-filter-btn filter-discard" onclick="toggleStatusFilter('discard')">✕ Discard</button>
+            </div>
         </div>
 
-        <button class="add-task-btn" id="addTaskBtn" onclick="openModal()" disabled>
-            <span>+</span> Add New Task
-        </button>
-
-        <div id="tasksContainer" class="tasks-grid">
-            <div class="loading">Sign in to view your tasks...</div>
-        </div>
+        <button class="add-task-btn" id="addTaskBtn" onclick="openModal()" disabled>+ Add New Task</button>
+        <div id="tasksContainer" class="tasks-grid"></div>
     </div>
 
     <div id="taskModal" class="modal">
         <div class="modal-content">
             <h2 id="modalTitle">Add New Task</h2>
-            <div id="errorMessage" class="error-message" style="display: none;"></div>
-            <div id="uploadProgress" class="upload-progress" style="display: none;"></div>
-            
             <form id="taskForm">
                 <div class="form-group">
                     <label>Category *</label>
@@ -397,7 +272,6 @@
                         <option value="reminder">Reminder</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Status</label>
                     <select id="status">
@@ -407,79 +281,21 @@
                         <option value="discard">Discard</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Task Name *</label>
-                    <input type="text" id="taskName" required placeholder="e.g., Book flight tickets">
+                    <input type="text" id="taskName" required>
                 </div>
-
-                <div class="form-group">
-                    <label>Sub Task Name</label>
-                    <input type="text" id="subTaskName" placeholder="e.g., Compare prices">
-                </div>
-
                 <div class="form-group">
                     <label>Date *</label>
                     <input type="date" id="taskDate" required>
                 </div>
-
-                <div class="form-group">
-                    <label>Start Time</label>
-                    <input type="time" id="startTime">
-                </div>
-
-                <div class="form-group">
-                    <label>End Time</label>
-                    <input type="time" id="endTime">
-                </div>
-
                 <div class="form-group">
                     <label>Description</label>
-                    <textarea id="description" placeholder="Task details..."></textarea>
+                    <textarea id="description"></textarea>
                 </div>
-
-                <div class="form-group">
-                    <label>Business Name</label>
-                    <input type="text" id="businessName" placeholder="e.g., ABC Travel Agency">
-                </div>
-
-                <div class="form-group">
-                    <label>Contact Nominee</label>
-                    <input type="text" id="contactNominee" placeholder="e.g., John Smith">
-                </div>
-
-                <div class="form-group">
-                    <label>Contact Email</label>
-                    <input type="email" id="contactEmail" placeholder="email@example.com">
-                </div>
-
-                <div class="form-group">
-                    <label>Documents (PDF, Word, etc.)</label>
-                    <label for="docsUpload" class="file-input-label">📎 Choose Files</label>
-                    <input type="file" id="docsUpload" multiple>
-                    <div id="docsList" class="file-list"></div>
-                </div>
-
-                <div class="form-group">
-                    <label>Photos</label>
-                    <label for="photosUpload" class="file-input-label">📷 Choose Photos</label>
-                    <input type="file" id="photosUpload" multiple accept="image/*">
-                    <div id="photosList" class="file-list"></div>
-                </div>
-
-                <div class="form-group">
-                    <label>Notes</label>
-                    <textarea id="notes" placeholder="Additional notes..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>Comments</label>
-                    <textarea id="comments" placeholder="Comments..."></textarea>
-                </div>
-
                 <div class="btn-group">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Task</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
         </div>
@@ -492,393 +308,167 @@
     <script>
         const CLIENT_ID = '985615448208-595ifcs5e2qpd0bbvj13tmv5lb49b4pe.apps.googleusercontent.com';
         const API_KEY = 'AIzaSyD3hAg8p-F0-qwJiplkxhaJD9Fsytzb030';
-        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+        
+        let tokenClient, accessToken, currentCategory = 'all', allTasks = [], appFolderId;
+        let activeStatusFilters = ['completed', 'ongoing', 'not-started']; // Discard hidden by default
 
-        let tokenClient, accessToken = null, currentCategory = 'all', editingTaskId = null;
-        let allTasks = [], appFolderId = null, uploadedFiles = {docs: [], photos: []};
-
-        function gapiLoaded() { gapi.load('client', initializeGapiClient); }
-        async function initializeGapiClient() {
-            await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
-        }
-        function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID, scope: SCOPES, callback: ''
-            });
-        }
-        function handleAuth() {
-            tokenClient.callback = async (resp) => {
-                if (resp.error !== undefined) throw (resp);
-                accessToken = gapi.client.getToken().access_token;
-                await onSignIn();
-            };
-            if (gapi.client.getToken() === null) {
-                tokenClient.requestAccessToken({prompt: 'consent'});
+        function toggleStatusFilter(status) {
+            const btn = document.querySelector(`.filter-${status}`);
+            if (activeStatusFilters.includes(status)) {
+                activeStatusFilters = activeStatusFilters.filter(s => s !== status);
+                btn.classList.remove('active');
             } else {
-                tokenClient.requestAccessToken({prompt: ''});
+                activeStatusFilters.push(status);
+                btn.classList.add('active');
             }
-        }
-        async function onSignIn() {
-            document.getElementById('authBtn').style.display = 'none';
-            document.getElementById('userInfo').style.display = 'inline-flex';
-            document.getElementById('userInfo').textContent = '✓ Signed in';
-            document.getElementById('addTaskBtn').disabled = false;
-            await ensureAppFolder();
-            await loadTasks();
-        }
-        async function ensureAppFolder() {
-            try {
-                const response = await gapi.client.drive.files.list({
-                    q: "name='FamilyTaskManager' and mimeType='application/vnd.google-apps.folder' and trashed=false",
-                    spaces: 'drive', fields: 'files(id, name)'
-                });
-                if (response.result.files.length > 0) {
-                    appFolderId = response.result.files[0].id;
-                } else {
-                    const folderMetadata = { name: 'FamilyTaskManager', mimeType: 'application/vnd.google-apps.folder' };
-                    const folder = await gapi.client.drive.files.create({ resource: folderMetadata, fields: 'id' });
-                    appFolderId = folder.result.id;
-                }
-            } catch (error) {
-                console.error('Error creating folder:', error);
-                showError('Failed to access Google Drive');
-            }
-        }
-        document.addEventListener('DOMContentLoaded', () => {
-            setupEventListeners();
-            const script1 = document.createElement('script');
-            script1.src = 'https://accounts.google.com/gsi/client';
-            script1.async = true; script1.defer = true; script1.onload = gisLoaded;
-            document.head.appendChild(script1);
-            const script2 = document.createElement('script');
-            script2.src = 'https://apis.google.com/js/api.js'; script2.onload = gapiLoaded;
-            document.head.appendChild(script2);
-        });
-        function setupEventListeners() {
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    currentCategory = tab.dataset.category;
-                    renderTasks();
-                });
-            });
-            document.getElementById('taskForm').addEventListener('submit', handleFormSubmit);
-            document.getElementById('docsUpload').addEventListener('change', handleFileSelect);
-            document.getElementById('photosUpload').addEventListener('change', handleFileSelect);
-        }
-        function handleFileSelect(e) {
-            const listId = e.target.id === 'docsUpload' ? 'docsList' : 'photosList';
-            const fileType = e.target.id === 'docsUpload' ? 'docs' : 'photos';
-            const list = document.getElementById(listId);
-            list.innerHTML = Array.from(e.target.files).map((f, i) => `
-                <div class="file-item">
-                    <span>${f.name}</span>
-                    <button type="button" onclick="removeFile('${fileType}', ${i})">Remove</button>
-                </div>
-            `).join('');
-        }
-        function removeFile(type, index) {
-            const input = document.getElementById(type === 'docs' ? 'docsUpload' : 'photosUpload');
-            const dt = new DataTransfer();
-            const files = Array.from(input.files);
-            files.splice(index, 1);
-            files.forEach(file => dt.items.add(file));
-            input.files = dt.files;
-            handleFileSelect({target: input});
-        }
-        async function uploadFileToDrive(file, taskId) {
-            const metadata = { name: file.name, parents: [appFolderId], description: `Task: ${taskId}` };
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
-            form.append('file', file);
-            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
-                method: 'POST',
-                headers: new Headers({'Authorization': 'Bearer ' + accessToken}),
-                body: form
-            });
-            return await response.json();
-        }
-        async function loadTasks() {
-            try {
-                setSyncStatus('syncing');
-                const response = await gapi.client.drive.files.list({
-                    q: `name='tasks.json' and '${appFolderId}' in parents and trashed=false`,
-                    spaces: 'drive', fields: 'files(id)'
-                });
-                if (response.result.files.length > 0) {
-                    const fileId = response.result.files[0].id;
-                    const content = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' });
-                    allTasks = JSON.parse(content.body);
-                } else {
-                    allTasks = [];
-                }
-                renderTasks();
-                setSyncStatus('synced');
-            } catch (error) {
-                console.error('Error loading tasks:', error);
-                allTasks = []; renderTasks(); setSyncStatus('synced');
-            }
-        }
-        async function saveTasks() {
-            try {
-                setSyncStatus('syncing');
-                const content = JSON.stringify(allTasks, null, 2);
-                const blob = new Blob([content], {type: 'application/json'});
-                const response = await gapi.client.drive.files.list({
-                    q: `name='tasks.json' and '${appFolderId}' in parents and trashed=false`,
-                    spaces: 'drive', fields: 'files(id)'
-                });
-                const form = new FormData();
-                if (response.result.files.length > 0) {
-                    const fileId = response.result.files[0].id;
-                    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                        method: 'PATCH',
-                        headers: new Headers({'Authorization': 'Bearer ' + accessToken}),
-                        body: blob
-                    });
-                } else {
-                    const metadata = { name: 'tasks.json', parents: [appFolderId], mimeType: 'application/json' };
-                    form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
-                    form.append('file', blob);
-                    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                        method: 'POST',
-                        headers: new Headers({'Authorization': 'Bearer ' + accessToken}),
-                        body: form
-                    });
-                }
-                setSyncStatus('synced');
-                return true;
-            } catch (error) {
-                console.error('Error saving tasks:', error);
-                showError('Failed to save to Google Drive');
-                setSyncStatus('synced');
-                return false;
-            }
-        }
-        function setSyncStatus(status) {
-            const statusEl = document.getElementById('syncStatus');
-            if (status === 'syncing') {
-                statusEl.className = 'sync-status syncing';
-                statusEl.textContent = '⟳ Syncing...';
-            } else {
-                statusEl.className = 'sync-status synced';
-                statusEl.textContent = '✓ Synced';
-            }
-        }
-        function showError(message) {
-            const errorEl = document.getElementById('errorMessage');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            setTimeout(() => { errorEl.style.display = 'none'; }, 5000);
-        }
-        function getStatusLabel(status) {
-            const labels = {
-                'completed': '✓ Completed',
-                'ongoing': '⟳ Ongoing',
-                'not-started': '○ Not Started',
-                'discard': '✕ Discard'
-            };
-            return labels[status] || '○ Not Started';
-        }
-        function renderTasks() {
-            const container = document.getElementById('tasksContainer');
-            const filteredTasks = currentCategory === 'all' ? allTasks : allTasks.filter(t => t.category === currentCategory);
-            if (filteredTasks.length === 0) {
-                container.innerHTML = `<div class="empty-state"><h2>No tasks yet</h2><p>Click "Add New Task" to get started</p></div>`;
-                return;
-            }
-            container.innerHTML = filteredTasks.map(task => `
-                <div class="task-card">
-                    <div class="task-header">
-                        <div class="task-title">${escapeHtml(task.taskName)}</div>
-                        <div class="task-category">${getCategoryLabel(task.category)}</div>
-                    </div>
-                    <div class="task-status status-${task.status || 'not-started'}">${getStatusLabel(task.status || 'not-started')}</div>
-                    ${task.subTaskName ? `<div class="task-subtitle">${escapeHtml(task.subTaskName)}</div>` : ''}
-                    <div class="task-date">📅 ${formatDate(task.taskDate)} ${task.startTime ? `⏰ ${task.startTime}${task.endTime ? ` - ${task.endTime}` : ''}` : ''}</div>
-                    ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
-                    ${task.attachments && task.attachments.length > 0 ? `<div class="task-attachments">${task.attachments.map(att => `<a href="${att.link}" target="_blank" class="attachment-link">${att.type === 'photo' ? '📷' : '📎'} ${att.name}</a>`).join('')}</div>` : ''}
-                    ${task.businessName || task.contactNominee ? `<div class="task-details">${task.businessName ? `<div>🏢 ${escapeHtml(task.businessName)}</div>` : ''}${task.contactNominee ? `<div>👤 ${escapeHtml(task.contactNominee)}</div>` : ''}</div>` : ''}
-                    <div class="task-actions">
-                        <button class="task-btn task-btn-view" onclick="viewTask('${task.id}')">View / Edit</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        function getCategoryLabel(category) {
-            const labels = {
-                'travel': '✈️ Travel',
-                'home-improvement': '🏠 Home Improvement',
-                'kids': '👶 Kids',
-                'school': '🎓 School',
-                'work': '💼 Work',
-                'home-projects': '🔨 Home Projects',
-                'travel-plans': '🗺️ Travel Plans',
-                'gift-card': '🎁 Gift Card',
-                'course': '📚 Course',
-                'reminder': '⏰ Reminder'
-            };
-            return labels[category] || category;
-        }
-        function formatDate(dateStr) {
-            const date = new Date(dateStr + 'T00:00:00');
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
-        function openModal() {
-            editingTaskId = null;
-            uploadedFiles = {docs: [], photos: []};
-            document.getElementById('modalTitle').textContent = 'Add New Task';
-            document.getElementById('taskForm').reset();
-            document.getElementById('status').value = 'not-started';
-            document.getElementById('docsList').innerHTML = '';
-            document.getElementById('photosList').innerHTML = '';
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('uploadProgress').style.display = 'none';
-            document.getElementById('taskModal').classList.add('active');
-        }
-        function closeModal() { document.getElementById('taskModal').classList.remove('active'); }
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            const progressEl = document.getElementById('uploadProgress');
-            progressEl.style.display = 'block';
-            progressEl.textContent = 'Uploading files to Google Drive...';
-            try {
-                const taskId = editingTaskId || Date.now().toString();
-                const attachments = [];
-                const docsFiles = document.getElementById('docsUpload').files;
-                for (let i = 0; i < docsFiles.length; i++) {
-                    progressEl.textContent = `Uploading document ${i + 1}/${docsFiles.length}...`;
-                    const uploaded = await uploadFileToDrive(docsFiles[i], taskId);
-                    attachments.push({ type: 'doc', name: uploaded.name, link: uploaded.webViewLink, id: uploaded.id });
-                }
-                const photoFiles = document.getElementById('photosUpload').files;
-                for (let i = 0; i < photoFiles.length; i++) {
-                    progressEl.textContent = `Uploading photo ${i + 1}/${photoFiles.length}...`;
-                    const uploaded = await uploadFileToDrive(photoFiles[i], taskId);
-                    attachments.push({ type: 'photo', name: uploaded.name, link: uploaded.webViewLink, id: uploaded.id });
-                }
-                const formData = {
-                    id: taskId,
-                    category: document.getElementById('category').value,
-                    status: document.getElementById('status').value || 'not-started',
-                    taskName: document.getElementById('taskName').value,
-                    subTaskName: document.getElementById('subTaskName').value,
-                    taskDate: document.getElementById('taskDate').value,
-                    startTime: document.getElementById('startTime').value,
-                    endTime: document.getElementById('endTime').value,
-                    description: document.getElementById('description').value,
-                    businessName: document.getElementById('businessName').value,
-                    contactNominee: document.getElementById('contactNominee').value,
-                    contactEmail: document.getElementById('contactEmail').value,
-                    notes: document.getElementById('notes').value,
-                    comments: document.getElementById('comments').value,
-                    attachments: attachments,
-                    createdAt: editingTaskId ? allTasks.find(t => t.id === editingTaskId)?.createdAt : new Date().toISOString()
-                };
-                if (editingTaskId) {
-                    const index = allTasks.findIndex(t => t.id === editingTaskId);
-                    if (allTasks[index].attachments) {
-                        formData.attachments = [...allTasks[index].attachments, ...formData.attachments];
-                    }
-                    allTasks[index] = formData;
-                } else {
-                    allTasks.unshift(formData);
-                }
-                progressEl.textContent = 'Saving task data...';
-                const saved = await saveTasks();
-                if (saved) { closeModal(); renderTasks(); }
-            } catch (error) {
-                console.error('Error saving task:', error);
-                showError('Failed to save task. Please try again.');
-                progressEl.style.display = 'none';
-            }
-        }
-        async function updateTaskStatus(id, newStatus) {
-            const index = allTasks.findIndex(t => t.id === id);
-            if (index !== -1) {
-                allTasks[index].status = newStatus;
-                await saveTasks();
-                closeViewModal();
-                renderTasks();
-            }
-        }
-        function viewTask(id) {
-            const task = allTasks.find(t => t.id === id);
-            if (!task) return;
-            const content = `
-                <h2>${escapeHtml(task.taskName)}</h2>
-                ${task.subTaskName ? `<p style="color: #666; margin-bottom: 20px;">${escapeHtml(task.subTaskName)}</p>` : ''}
-                <div style="margin-bottom: 15px;"><strong>Status:</strong> <span class="task-status status-${task.status || 'not-started'}">${getStatusLabel(task.status || 'not-started')}</span></div>
-                <div style="margin-bottom: 15px;"><strong>Category:</strong> ${getCategoryLabel(task.category)}</div>
-                <div style="margin-bottom: 15px;"><strong>Date:</strong> ${formatDate(task.taskDate)}${task.startTime ? `<br><strong>Time:</strong> ${task.startTime}${task.endTime ? ` - ${task.endTime}` : ''}` : ''}</div>
-                ${task.description ? `<div style="margin-bottom: 15px;"><strong>Description:</strong><br>${escapeHtml(task.description)}</div>` : ''}
-                ${task.businessName ? `<div style="margin-bottom: 10px;"><strong>Business:</strong> ${escapeHtml(task.businessName)}</div>` : ''}
-                ${task.contactNominee ? `<div style="margin-bottom: 10px;"><strong>Contact:</strong> ${escapeHtml(task.contactNominee)}</div>` : ''}
-                ${task.contactEmail ? `<div style="margin-bottom: 10px;"><strong>Email:</strong> ${escapeHtml(task.contactEmail)}</div>` : ''}
-                ${task.notes ? `<div style="margin-bottom: 15px;"><strong>Notes:</strong><br>${escapeHtml(task.notes)}</div>` : ''}
-                ${task.comments ? `<div style="margin-bottom: 15px;"><strong>Comments:</strong><br>${escapeHtml(task.comments)}</div>` : ''}
-                ${task.attachments && task.attachments.length > 0 ? `<div style="margin-bottom: 15px;"><strong>Files & Photos:</strong><br>${task.attachments.map(att => `<a href="${att.link}" target="_blank" class="attachment-link">${att.type === 'photo' ? '📷' : '📎'} ${att.name}</a>`).join('')}</div>` : ''}
-                <div style="margin-top: 25px; margin-bottom: 10px;"><strong>Update Status:</strong></div>
-                <div class="status-buttons">
-                    <button class="status-btn status-btn-completed" onclick="updateTaskStatus('${task.id}', 'completed')">✓ Completed</button>
-                    <button class="status-btn status-btn-ongoing" onclick="updateTaskStatus('${task.id}', 'ongoing')">⟳ Ongoing</button>
-                    <button class="status-btn status-btn-not-started" onclick="updateTaskStatus('${task.id}', 'not-started')">○ Not Started</button>
-                    <button class="status-btn status-btn-discard" onclick="updateTaskStatus('${task.id}', 'discard')">✕ Discard</button>
-                    <button class="status-btn status-btn-delete" style="grid-column: 1 / -1;" onclick="deleteTask('${task.id}')">🗑️ Delete Permanently</button>
-                </div>
-                <div class="btn-group" style="margin-top: 20px;">
-                    <button class="btn btn-secondary" onclick="closeViewModal()">Close</button>
-                    <button class="btn btn-primary" onclick="editTask('${task.id}')">Edit Details</button>
-                </div>
-            `;
-            document.getElementById('viewModalContent').innerHTML = content;
-            document.getElementById('viewModal').classList.add('active');
-        }
-        function closeViewModal() { document.getElementById('viewModal').classList.remove('active'); }
-        function editTask(id) {
-            closeViewModal();
-            const task = allTasks.find(t => t.id === id);
-            if (!task) return;
-            editingTaskId = id;
-            document.getElementById('modalTitle').textContent = 'Edit Task';
-            document.getElementById('category').value = task.category;
-            document.getElementById('status').value = task.status || 'not-started';
-            document.getElementById('taskName').value = task.taskName;
-            document.getElementById('subTaskName').value = task.subTaskName || '';
-            document.getElementById('taskDate').value = task.taskDate;
-            document.getElementById('startTime').value = task.startTime || '';
-            document.getElementById('endTime').value = task.endTime || '';
-            document.getElementById('description').value = task.description || '';
-            document.getElementById('businessName').value = task.businessName || '';
-            document.getElementById('contactNominee').value = task.contactNominee || '';
-            document.getElementById('contactEmail').value = task.contactEmail || '';
-            document.getElementById('notes').value = task.notes || '';
-            document.getElementById('comments').value = task.comments || '';
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('taskModal').classList.add('active');
-        }
-        async function deleteTask(id) {
-            if (!confirm('Are you sure you want to permanently delete this task and all its files? This cannot be undone.')) return;
-            const task = allTasks.find(t => t.id === id);
-            if (task.attachments) {
-                for (const att of task.attachments) {
-                    try {
-                        await gapi.client.drive.files.delete({ fileId: att.id });
-                    } catch (error) { console.error('Error deleting file:', error); }
-                }
-            }
-            allTasks = allTasks.filter(t => t.id !== id);
-            await saveTasks();
-            closeViewModal();
             renderTasks();
         }
+
+        function gapiLoaded() { gapi.load('client', () => gapi.client.init({ apiKey: API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] })); }
+        function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '' }); }
+        
+        function handleAuth() {
+            tokenClient.callback = async (resp) => {
+                if (resp.error) throw resp;
+                accessToken = gapi.client.getToken().access_token;
+                document.getElementById('authBtn').style.display = 'none';
+                document.getElementById('userInfo').textContent = '✓ Signed in';
+                document.getElementById('userInfo').style.display = 'inline';
+                document.getElementById('addTaskBtn').disabled = false;
+                await ensureAppFolder();
+                await loadTasks();
+            };
+            tokenClient.requestAccessToken({prompt: gapi.client.getToken() ? '' : 'consent'});
+        }
+
+        async function ensureAppFolder() {
+            const resp = await gapi.client.drive.files.list({ q: "name='FamilyTaskManager' and mimeType='application/vnd.google-apps.folder' and trashed=false" });
+            if (resp.result.files.length > 0) {
+                appFolderId = resp.result.files[0].id;
+            } else {
+                const folder = await gapi.client.drive.files.create({ resource: { name: 'FamilyTaskManager', mimeType: 'application/vnd.google-apps.folder' }});
+                appFolderId = folder.result.id;
+            }
+        }
+
+        async function loadTasks() {
+            try {
+                const resp = await gapi.client.drive.files.list({ q: `name='tasks.json' and '${appFolderId}' in parents and trashed=false` });
+                if (resp.result.files.length > 0) {
+                    const content = await gapi.client.drive.files.get({ fileId: resp.result.files[0].id, alt: 'media' });
+                    allTasks = JSON.parse(content.body);
+                }
+                renderTasks();
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveTasks() {
+            const blob = new Blob([JSON.stringify(allTasks, null, 2)], {type: 'application/json'});
+            const resp = await gapi.client.drive.files.list({ q: `name='tasks.json' and '${appFolderId}' in parents` });
+            if (resp.result.files.length > 0) {
+                await fetch(`https://www.googleapis.com/upload/drive/v3/files/${resp.result.files[0].id}?uploadType=media`, {
+                    method: 'PATCH',
+                    headers: {'Authorization': 'Bearer ' + accessToken},
+                    body: blob
+                });
+            } else {
+                const form = new FormData();
+                form.append('metadata', new Blob([JSON.stringify({ name: 'tasks.json', parents: [appFolderId] })], {type: 'application/json'}));
+                form.append('file', blob);
+                await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                    method: 'POST',
+                    headers: {'Authorization': 'Bearer ' + accessToken},
+                    body: form
+                });
+            }
+        }
+
+        function renderTasks() {
+            let filtered = currentCategory === 'all' ? allTasks : allTasks.filter(t => t.category === currentCategory);
+            filtered = filtered.filter(t => activeStatusFilters.includes(t.status || 'not-started'));
+            
+            document.getElementById('tasksContainer').innerHTML = filtered.length ? filtered.map(t => `
+                <div class="task-card">
+                    <h3>${t.taskName}</h3>
+                    <div class="task-status status-${t.status || 'not-started'}">${getStatusLabel(t.status)}</div>
+                    <p>📅 ${t.taskDate}</p>
+                    <button class="task-btn" onclick="viewTask('${t.id}')">View / Edit</button>
+                </div>
+            `).join('') : '<p style="color:white;text-align:center">No tasks match your filters</p>';
+        }
+
+        function getStatusLabel(s) {
+            return { completed: '✓ Completed', ongoing: '⟳ Ongoing', 'not-started': '○ Not Started', discard: '✕ Discard' }[s || 'not-started'];
+        }
+
+        function openModal() {
+            document.getElementById('taskForm').reset();
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('taskModal').classList.remove('active');
+            document.getElementById('viewModal').classList.remove('active');
+        }
+
+        document.getElementById('taskForm').onsubmit = async (e) => {
+            e.preventDefault();
+            allTasks.unshift({
+                id: Date.now().toString(),
+                category: document.getElementById('category').value,
+                status: document.getElementById('status').value,
+                taskName: document.getElementById('taskName').value,
+                taskDate: document.getElementById('taskDate').value,
+                description: document.getElementById('description').value
+            });
+            await saveTasks();
+            closeModal();
+            renderTasks();
+        };
+
+        async function viewTask(id) {
+            const t = allTasks.find(x => x.id === id);
+            document.getElementById('viewModalContent').innerHTML = `
+                <h2>${t.taskName}</h2>
+                <p>Status: <span class="task-status status-${t.status}">${getStatusLabel(t.status)}</span></p>
+                <div class="status-buttons">
+                    <button class="status-btn" style="border-color:#10b981;color:#10b981" onclick="updateStatus('${id}','completed')">✓ Completed</button>
+                    <button class="status-btn" style="border-color:#3b82f6;color:#3b82f6" onclick="updateStatus('${id}','ongoing')">⟳ Ongoing</button>
+                    <button class="status-btn" style="border-color:#f59e0b;color:#f59e0b" onclick="updateStatus('${id}','not-started')">○ Not Started</button>
+                    <button class="status-btn" style="border-color:#ef4444;color:#ef4444" onclick="updateStatus('${id}','discard')">✕ Discard</button>
+                </div>
+                <button class="btn btn-secondary" style="margin-top:20px;width:100%" onclick="closeModal()">Close</button>
+            `;
+            document.getElementById('viewModal').classList.add('active');
+        }
+
+        async function updateStatus(id, status) {
+            allTasks.find(t => t.id === id).status = status;
+            await saveTasks();
+            closeModal();
+            renderTasks();
+        }
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentCategory = tab.dataset.category;
+                renderTasks();
+            };
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const s1 = document.createElement('script');
+            s1.src = 'https://accounts.google.com/gsi/client';
+            s1.onload = gisLoaded;
+            document.head.appendChild(s1);
+            const s2 = document.createElement('script');
+            s2.src = 'https://apis.google.com/js/api.js';
+            s2.onload = gapiLoaded;
+            document.head.appendChild(s2);
+        });
     </script>
 </body>
 </html>
