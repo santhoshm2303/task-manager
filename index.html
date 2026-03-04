@@ -160,6 +160,8 @@
         .btn { flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         .btn-primary { background: #667eea; color: white; }
         .btn-secondary { background: #e0e0e0; color: #333; }
+        .btn-danger { background: #ff4757; color: white; }
+        .btn-success { background: #10b981; color: white; }
         .tasks-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -197,6 +199,18 @@
             margin-left: 10px;
             white-space: nowrap;
         }
+        .task-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+        .status-completed { background: #d1fae5; color: #065f46; }
+        .status-ongoing { background: #dbeafe; color: #1e40af; }
+        .status-not-started { background: #fef3c7; color: #92400e; }
+        .status-discard { background: #fee2e2; color: #991b1b; }
         .task-subtitle { color: #666; font-size: 14px; margin-bottom: 10px; }
         .task-date { color: #999; font-size: 13px; margin-bottom: 10px; }
         .task-description { color: #666; font-size: 14px; margin-bottom: 10px; line-height: 1.5; }
@@ -249,6 +263,65 @@
             background: #f8f9fa;
             border-radius: 5px;
             font-size: 12px;
+        }
+        .status-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .status-btn {
+            padding: 12px;
+            border: 2px solid;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .status-btn-completed {
+            border-color: #10b981;
+            color: #10b981;
+            background: white;
+        }
+        .status-btn-completed:hover {
+            background: #10b981;
+            color: white;
+        }
+        .status-btn-ongoing {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background: white;
+        }
+        .status-btn-ongoing:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        .status-btn-not-started {
+            border-color: #f59e0b;
+            color: #f59e0b;
+            background: white;
+        }
+        .status-btn-not-started:hover {
+            background: #f59e0b;
+            color: white;
+        }
+        .status-btn-discard {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: white;
+        }
+        .status-btn-discard:hover {
+            background: #ef4444;
+            color: white;
+        }
+        .status-btn-delete {
+            border-color: #dc2626;
+            background: #dc2626;
+            color: white;
+        }
+        .status-btn-delete:hover {
+            background: #b91c1c;
         }
         @media (max-width: 768px) {
             .tasks-grid { grid-template-columns: 1fr; }
@@ -322,6 +395,16 @@
                         <option value="gift-card">Gift Card</option>
                         <option value="course">Course</option>
                         <option value="reminder">Reminder</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select id="status" required>
+                        <option value="not-started">Not Started</option>
+                        <option value="ongoing">Ongoing</option>
+                        <option value="completed">Completed</option>
+                        <option value="discard">Discard</option>
                     </select>
                 </div>
 
@@ -591,6 +674,15 @@
             errorEl.style.display = 'block';
             setTimeout(() => { errorEl.style.display = 'none'; }, 5000);
         }
+        function getStatusLabel(status) {
+            const labels = {
+                'completed': '✓ Completed',
+                'ongoing': '⟳ Ongoing',
+                'not-started': '○ Not Started',
+                'discard': '✕ Discard'
+            };
+            return labels[status] || status;
+        }
         function renderTasks() {
             const container = document.getElementById('tasksContainer');
             const filteredTasks = currentCategory === 'all' ? allTasks : allTasks.filter(t => t.category === currentCategory);
@@ -604,14 +696,14 @@
                         <div class="task-title">${escapeHtml(task.taskName)}</div>
                         <div class="task-category">${getCategoryLabel(task.category)}</div>
                     </div>
+                    <div class="task-status status-${task.status || 'not-started'}">${getStatusLabel(task.status || 'not-started')}</div>
                     ${task.subTaskName ? `<div class="task-subtitle">${escapeHtml(task.subTaskName)}</div>` : ''}
                     <div class="task-date">📅 ${formatDate(task.taskDate)} ${task.startTime ? `⏰ ${task.startTime}${task.endTime ? ` - ${task.endTime}` : ''}` : ''}</div>
                     ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
                     ${task.attachments && task.attachments.length > 0 ? `<div class="task-attachments">${task.attachments.map(att => `<a href="${att.link}" target="_blank" class="attachment-link">${att.type === 'photo' ? '📷' : '📎'} ${att.name}</a>`).join('')}</div>` : ''}
                     ${task.businessName || task.contactNominee ? `<div class="task-details">${task.businessName ? `<div>🏢 ${escapeHtml(task.businessName)}</div>` : ''}${task.contactNominee ? `<div>👤 ${escapeHtml(task.contactNominee)}</div>` : ''}</div>` : ''}
                     <div class="task-actions">
-                        <button class="task-btn task-btn-view" onclick="viewTask('${task.id}')">View Details</button>
-                        <button class="task-btn task-btn-delete" onclick="deleteTask('${task.id}')">Delete</button>
+                        <button class="task-btn task-btn-view" onclick="viewTask('${task.id}')">View / Edit</button>
                     </div>
                 </div>
             `).join('');
@@ -675,6 +767,7 @@
                 const formData = {
                     id: taskId,
                     category: document.getElementById('category').value,
+                    status: document.getElementById('status').value,
                     taskName: document.getElementById('taskName').value,
                     subTaskName: document.getElementById('subTaskName').value,
                     taskDate: document.getElementById('taskDate').value,
@@ -707,12 +800,22 @@
                 progressEl.style.display = 'none';
             }
         }
+        async function updateTaskStatus(id, newStatus) {
+            const index = allTasks.findIndex(t => t.id === id);
+            if (index !== -1) {
+                allTasks[index].status = newStatus;
+                await saveTasks();
+                closeViewModal();
+                renderTasks();
+            }
+        }
         function viewTask(id) {
             const task = allTasks.find(t => t.id === id);
             if (!task) return;
             const content = `
                 <h2>${escapeHtml(task.taskName)}</h2>
                 ${task.subTaskName ? `<p style="color: #666; margin-bottom: 20px;">${escapeHtml(task.subTaskName)}</p>` : ''}
+                <div style="margin-bottom: 15px;"><strong>Status:</strong> <span class="task-status status-${task.status || 'not-started'}">${getStatusLabel(task.status || 'not-started')}</span></div>
                 <div style="margin-bottom: 15px;"><strong>Category:</strong> ${getCategoryLabel(task.category)}</div>
                 <div style="margin-bottom: 15px;"><strong>Date:</strong> ${formatDate(task.taskDate)}${task.startTime ? `<br><strong>Time:</strong> ${task.startTime}${task.endTime ? ` - ${task.endTime}` : ''}` : ''}</div>
                 ${task.description ? `<div style="margin-bottom: 15px;"><strong>Description:</strong><br>${escapeHtml(task.description)}</div>` : ''}
@@ -722,9 +825,17 @@
                 ${task.notes ? `<div style="margin-bottom: 15px;"><strong>Notes:</strong><br>${escapeHtml(task.notes)}</div>` : ''}
                 ${task.comments ? `<div style="margin-bottom: 15px;"><strong>Comments:</strong><br>${escapeHtml(task.comments)}</div>` : ''}
                 ${task.attachments && task.attachments.length > 0 ? `<div style="margin-bottom: 15px;"><strong>Files & Photos:</strong><br>${task.attachments.map(att => `<a href="${att.link}" target="_blank" class="attachment-link">${att.type === 'photo' ? '📷' : '📎'} ${att.name}</a>`).join('')}</div>` : ''}
+                <div style="margin-top: 25px; margin-bottom: 10px;"><strong>Update Status:</strong></div>
+                <div class="status-buttons">
+                    <button class="status-btn status-btn-completed" onclick="updateTaskStatus('${task.id}', 'completed')">✓ Completed</button>
+                    <button class="status-btn status-btn-ongoing" onclick="updateTaskStatus('${task.id}', 'ongoing')">⟳ Ongoing</button>
+                    <button class="status-btn status-btn-not-started" onclick="updateTaskStatus('${task.id}', 'not-started')">○ Not Started</button>
+                    <button class="status-btn status-btn-discard" onclick="updateTaskStatus('${task.id}', 'discard')">✕ Discard</button>
+                    <button class="status-btn status-btn-delete" style="grid-column: 1 / -1;" onclick="deleteTask('${task.id}')">🗑️ Delete Permanently</button>
+                </div>
                 <div class="btn-group" style="margin-top: 20px;">
                     <button class="btn btn-secondary" onclick="closeViewModal()">Close</button>
-                    <button class="btn btn-primary" onclick="editTask('${task.id}')">Edit</button>
+                    <button class="btn btn-primary" onclick="editTask('${task.id}')">Edit Details</button>
                 </div>
             `;
             document.getElementById('viewModalContent').innerHTML = content;
@@ -738,6 +849,7 @@
             editingTaskId = id;
             document.getElementById('modalTitle').textContent = 'Edit Task';
             document.getElementById('category').value = task.category;
+            document.getElementById('status').value = task.status || 'not-started';
             document.getElementById('taskName').value = task.taskName;
             document.getElementById('subTaskName').value = task.subTaskName;
             document.getElementById('taskDate').value = task.taskDate;
@@ -753,7 +865,7 @@
             document.getElementById('taskModal').classList.add('active');
         }
         async function deleteTask(id) {
-            if (!confirm('Are you sure you want to delete this task and all its files?')) return;
+            if (!confirm('Are you sure you want to permanently delete this task and all its files? This cannot be undone.')) return;
             const task = allTasks.find(t => t.id === id);
             if (task.attachments) {
                 for (const att of task.attachments) {
@@ -764,6 +876,7 @@
             }
             allTasks = allTasks.filter(t => t.id !== id);
             await saveTasks();
+            closeViewModal();
             renderTasks();
         }
     </script>
