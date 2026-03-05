@@ -182,24 +182,49 @@
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .task-title { font-size: 18px; font-weight: 600; flex: 1; }
+        .task-category {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
         .task-status {
             display: inline-block;
             padding: 4px 12px;
             border-radius: 12px;
             font-size: 11px;
-            margin-top: 5px;
+            margin: 5px 0;
             font-weight: 600;
         }
         .status-completed { background: #d1fae5; color: #065f46; }
         .status-ongoing { background: #dbeafe; color: #1e40af; }
         .status-not-started { background: #fef3c7; color: #92400e; }
         .status-discard { background: #fee2e2; color: #991b1b; }
-        .task-btn { flex: 1; padding: 8px; border: none; border-radius: 5px; cursor: pointer; background: #667eea; color: white; }
+        .task-date { color: #999; font-size: 13px; margin: 10px 0; }
+        .task-description { color: #666; font-size: 14px; margin: 10px 0; }
+        .task-btn { 
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+            margin-top: 10px;
+        }
         .status-buttons {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
-            margin-top: 20px;
+            margin: 20px 0;
         }
         .status-btn {
             padding: 12px;
@@ -208,6 +233,21 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
+            background: white;
+        }
+        .status-btn-completed { border-color: #10b981; color: #10b981; }
+        .status-btn-completed:hover { background: #10b981; color: white; }
+        .status-btn-ongoing { border-color: #3b82f6; color: #3b82f6; }
+        .status-btn-ongoing:hover { background: #3b82f6; color: white; }
+        .status-btn-not-started { border-color: #f59e0b; color: #f59e0b; }
+        .status-btn-not-started:hover { background: #f59e0b; color: white; }
+        .status-btn-discard { border-color: #ef4444; color: #ef4444; }
+        .status-btn-discard:hover { background: #ef4444; color: white; }
+        .status-btn-delete { 
+            grid-column: 1 / -1;
+            border-color: #dc2626;
+            background: #dc2626;
+            color: white;
         }
         @media (max-width: 768px) {
             .tasks-grid { grid-template-columns: 1fr; }
@@ -286,12 +326,44 @@
                     <input type="text" id="taskName" required>
                 </div>
                 <div class="form-group">
+                    <label>Sub Task Name</label>
+                    <input type="text" id="subTaskName">
+                </div>
+                <div class="form-group">
                     <label>Date *</label>
                     <input type="date" id="taskDate" required>
                 </div>
                 <div class="form-group">
+                    <label>Start Time</label>
+                    <input type="time" id="startTime">
+                </div>
+                <div class="form-group">
+                    <label>End Time</label>
+                    <input type="time" id="endTime">
+                </div>
+                <div class="form-group">
                     <label>Description</label>
                     <textarea id="description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Business Name</label>
+                    <input type="text" id="businessName">
+                </div>
+                <div class="form-group">
+                    <label>Contact Nominee</label>
+                    <input type="text" id="contactNominee">
+                </div>
+                <div class="form-group">
+                    <label>Contact Email</label>
+                    <input type="email" id="contactEmail">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="notes"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Comments</label>
+                    <textarea id="comments"></textarea>
                 </div>
                 <div class="btn-group">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
@@ -310,8 +382,8 @@
         const API_KEY = 'AIzaSyD3hAg8p-F0-qwJiplkxhaJD9Fsytzb030';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
         
-        let tokenClient, accessToken, currentCategory = 'all', allTasks = [], appFolderId;
-        let activeStatusFilters = ['completed', 'ongoing', 'not-started']; // Discard hidden by default
+        let tokenClient, accessToken, currentCategory = 'all', editingTaskId, allTasks = [], appFolderId;
+        let activeStatusFilters = ['completed', 'ongoing', 'not-started'];
 
         function toggleStatusFilter(status) {
             const btn = document.querySelector(`.filter-${status}`);
@@ -384,18 +456,33 @@
             }
         }
 
+        function getCategoryLabel(c) {
+            const labels = {
+                'travel': '✈️ Travel', 'home-improvement': '🏠 Home Improvement',
+                'kids': '👶 Kids', 'school': '🎓 School', 'work': '💼 Work',
+                'home-projects': '🔨 Home Projects', 'travel-plans': '🗺️ Travel Plans',
+                'gift-card': '🎁 Gift Card', 'course': '📚 Course', 'reminder': '⏰ Reminder'
+            };
+            return labels[c] || c;
+        }
+
         function renderTasks() {
             let filtered = currentCategory === 'all' ? allTasks : allTasks.filter(t => t.category === currentCategory);
             filtered = filtered.filter(t => activeStatusFilters.includes(t.status || 'not-started'));
             
             document.getElementById('tasksContainer').innerHTML = filtered.length ? filtered.map(t => `
                 <div class="task-card">
-                    <h3>${t.taskName}</h3>
+                    <div class="task-header">
+                        <div class="task-title">${t.taskName}</div>
+                        <div class="task-category">${getCategoryLabel(t.category)}</div>
+                    </div>
                     <div class="task-status status-${t.status || 'not-started'}">${getStatusLabel(t.status)}</div>
-                    <p>📅 ${t.taskDate}</p>
+                    ${t.subTaskName ? `<p style="color:#666;font-size:14px">${t.subTaskName}</p>` : ''}
+                    <div class="task-date">📅 ${t.taskDate} ${t.startTime ? `⏰ ${t.startTime}` : ''}</div>
+                    ${t.description ? `<div class="task-description">${t.description}</div>` : ''}
                     <button class="task-btn" onclick="viewTask('${t.id}')">View / Edit</button>
                 </div>
-            `).join('') : '<p style="color:white;text-align:center">No tasks match your filters</p>';
+            `).join('') : '<p style="color:white;text-align:center;grid-column:1/-1">No tasks match your filters</p>';
         }
 
         function getStatusLabel(s) {
@@ -403,6 +490,8 @@
         }
 
         function openModal() {
+            editingTaskId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Task';
             document.getElementById('taskForm').reset();
             document.getElementById('taskModal').classList.add('active');
         }
@@ -414,14 +503,30 @@
 
         document.getElementById('taskForm').onsubmit = async (e) => {
             e.preventDefault();
-            allTasks.unshift({
-                id: Date.now().toString(),
+            const task = {
+                id: editingTaskId || Date.now().toString(),
                 category: document.getElementById('category').value,
                 status: document.getElementById('status').value,
                 taskName: document.getElementById('taskName').value,
+                subTaskName: document.getElementById('subTaskName').value,
                 taskDate: document.getElementById('taskDate').value,
-                description: document.getElementById('description').value
-            });
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                description: document.getElementById('description').value,
+                businessName: document.getElementById('businessName').value,
+                contactNominee: document.getElementById('contactNominee').value,
+                contactEmail: document.getElementById('contactEmail').value,
+                notes: document.getElementById('notes').value,
+                comments: document.getElementById('comments').value
+            };
+            
+            if (editingTaskId) {
+                const idx = allTasks.findIndex(t => t.id === editingTaskId);
+                allTasks[idx] = task;
+            } else {
+                allTasks.unshift(task);
+            }
+            
             await saveTasks();
             closeModal();
             renderTasks();
@@ -431,20 +536,65 @@
             const t = allTasks.find(x => x.id === id);
             document.getElementById('viewModalContent').innerHTML = `
                 <h2>${t.taskName}</h2>
-                <p>Status: <span class="task-status status-${t.status}">${getStatusLabel(t.status)}</span></p>
+                ${t.subTaskName ? `<p style="color:#666">${t.subTaskName}</p>` : ''}
+                <p style="margin:10px 0"><strong>Status:</strong> <span class="task-status status-${t.status}">${getStatusLabel(t.status)}</span></p>
+                <p><strong>Category:</strong> ${getCategoryLabel(t.category)}</p>
+                <p><strong>Date:</strong> ${t.taskDate} ${t.startTime ? `${t.startTime}${t.endTime ? ` - ${t.endTime}` : ''}` : ''}</p>
+                ${t.description ? `<p style="margin-top:10px"><strong>Description:</strong><br>${t.description}</p>` : ''}
+                ${t.businessName ? `<p><strong>Business:</strong> ${t.businessName}</p>` : ''}
+                ${t.contactNominee ? `<p><strong>Contact:</strong> ${t.contactNominee}</p>` : ''}
+                ${t.contactEmail ? `<p><strong>Email:</strong> ${t.contactEmail}</p>` : ''}
+                ${t.notes ? `<p><strong>Notes:</strong><br>${t.notes}</p>` : ''}
+                ${t.comments ? `<p><strong>Comments:</strong><br>${t.comments}</p>` : ''}
+                
+                <div style="margin-top:20px"><strong>Update Status:</strong></div>
                 <div class="status-buttons">
-                    <button class="status-btn" style="border-color:#10b981;color:#10b981" onclick="updateStatus('${id}','completed')">✓ Completed</button>
-                    <button class="status-btn" style="border-color:#3b82f6;color:#3b82f6" onclick="updateStatus('${id}','ongoing')">⟳ Ongoing</button>
-                    <button class="status-btn" style="border-color:#f59e0b;color:#f59e0b" onclick="updateStatus('${id}','not-started')">○ Not Started</button>
-                    <button class="status-btn" style="border-color:#ef4444;color:#ef4444" onclick="updateStatus('${id}','discard')">✕ Discard</button>
+                    <button class="status-btn status-btn-completed" onclick="updateStatus('${id}','completed')">✓ Completed</button>
+                    <button class="status-btn status-btn-ongoing" onclick="updateStatus('${id}','ongoing')">⟳ Ongoing</button>
+                    <button class="status-btn status-btn-not-started" onclick="updateStatus('${id}','not-started')">○ Not Started</button>
+                    <button class="status-btn status-btn-discard" onclick="updateStatus('${id}','discard')">✕ Discard</button>
+                    <button class="status-btn status-btn-delete" onclick="deleteTask('${id}')">🗑️ Delete</button>
                 </div>
-                <button class="btn btn-secondary" style="margin-top:20px;width:100%" onclick="closeModal()">Close</button>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                    <button class="btn btn-primary" onclick="editTask('${id}')">Edit Details</button>
+                </div>
             `;
             document.getElementById('viewModal').classList.add('active');
         }
 
+        function editTask(id) {
+            const t = allTasks.find(x => x.id === id);
+            editingTaskId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Task';
+            document.getElementById('category').value = t.category;
+            document.getElementById('status').value = t.status || 'not-started';
+            document.getElementById('taskName').value = t.taskName;
+            document.getElementById('subTaskName').value = t.subTaskName || '';
+            document.getElementById('taskDate').value = t.taskDate;
+            document.getElementById('startTime').value = t.startTime || '';
+            document.getElementById('endTime').value = t.endTime || '';
+            document.getElementById('description').value = t.description || '';
+            document.getElementById('businessName').value = t.businessName || '';
+            document.getElementById('contactNominee').value = t.contactNominee || '';
+            document.getElementById('contactEmail').value = t.contactEmail || '';
+            document.getElementById('notes').value = t.notes || '';
+            document.getElementById('comments').value = t.comments || '';
+            closeModal();
+            document.getElementById('taskModal').classList.add('active');
+        }
+
         async function updateStatus(id, status) {
             allTasks.find(t => t.id === id).status = status;
+            await saveTasks();
+            closeModal();
+            renderTasks();
+        }
+
+        async function deleteTask(id) {
+            if (!confirm('Delete this task permanently?')) return;
+            allTasks = allTasks.filter(t => t.id !== id);
             await saveTasks();
             closeModal();
             renderTasks();
