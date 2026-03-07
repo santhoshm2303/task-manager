@@ -49,7 +49,6 @@
         .sync-status.synced { background: #10b981; color: white; }
         .sync-status.syncing { background: #f59e0b; color: white; }
         
-        /* Status Filters */
         .filters-section {
             background: white;
             padding: 15px 20px;
@@ -381,6 +380,7 @@
         const CLIENT_ID = '985615448208-595ifcs5e2qpd0bbvj13tmv5lb49b4pe.apps.googleusercontent.com';
         const API_KEY = 'AIzaSyD3hAg8p-F0-qwJiplkxhaJD9Fsytzb030';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+        const FOLDER_NAME = 'FamilyTaskManager';
         
         let tokenClient, accessToken, currentCategory = 'all', editingTaskId, allTasks = [], appFolderId;
         let activeStatusFilters = ['completed', 'ongoing', 'not-started'];
@@ -415,27 +415,39 @@
         }
 
         async function ensureAppFolder() {
-            // Search for ANY FamilyTaskManager folder including shared ones
-            const resp = await gapi.client.drive.files.list({ 
-                q: "name='FamilyTaskManager' and mimeType='application/vnd.google-apps.folder' and trashed=false",
-                spaces: 'drive',
-                corpora: 'allDrives',
-                includeItemsFromAllDrives: true,
-                supportsAllDrives: true,
-                fields: 'files(id, name, owners)'
-            });
-            
-            if (resp.result.files.length > 0) {
-                // Use the first folder found (will include shared folders)
-                appFolderId = resp.result.files[0].id;
-                console.log('Using existing folder:', appFolderId);
-            } else {
-                // Only create if no folder exists at all
-                const folder = await gapi.client.drive.files.create({ 
-                    resource: { name: 'FamilyTaskManager', mimeType: 'application/vnd.google-apps.folder' }
+            try {
+                // CRITICAL: Search for ALL folders with this name
+                const resp = await gapi.client.drive.files.list({ 
+                    q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                    fields: 'files(id, name, ownedByMe, capabilities)',
+                    pageSize: 100
                 });
-                appFolderId = folder.result.id;
-                console.log('Created new folder:', appFolderId);
+                
+                console.log('Found folders:', resp.result.files);
+                
+                if (resp.result.files && resp.result.files.length > 0) {
+                    // Use the FIRST folder found (whether owned or shared)
+                    appFolderId = resp.result.files[0].id;
+                    console.log('Using folder:', appFolderId, 'Owned:', resp.result.files[0].ownedByMe);
+                    
+                    // Delete any EXTRA folders this user created (keep only first one)
+                    for (let i = 1; i < resp.result.files.length; i++) {
+                        if (resp.result.files[i].ownedByMe) {
+                            console.log('Deleting duplicate folder:', resp.result.files[i].id);
+                            await gapi.client.drive.files.delete({ fileId: resp.result.files[i].id });
+                        }
+                    }
+                } else {
+                    // No folder exists - create one
+                    const folder = await gapi.client.drive.files.create({ 
+                        resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }
+                    });
+                    appFolderId = folder.result.id;
+                    console.log('Created new folder:', appFolderId);
+                }
+            } catch (error) {
+                console.error('Error with folder:', error);
+                alert('Error accessing Google Drive. Please try again.');
             }
         }
 
