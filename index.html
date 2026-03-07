@@ -415,12 +415,27 @@
         }
 
         async function ensureAppFolder() {
-            const resp = await gapi.client.drive.files.list({ q: "name='FamilyTaskManager' and mimeType='application/vnd.google-apps.folder' and trashed=false" });
+            // Search for ANY FamilyTaskManager folder including shared ones
+            const resp = await gapi.client.drive.files.list({ 
+                q: "name='FamilyTaskManager' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                spaces: 'drive',
+                corpora: 'allDrives',
+                includeItemsFromAllDrives: true,
+                supportsAllDrives: true,
+                fields: 'files(id, name, owners)'
+            });
+            
             if (resp.result.files.length > 0) {
+                // Use the first folder found (will include shared folders)
                 appFolderId = resp.result.files[0].id;
+                console.log('Using existing folder:', appFolderId);
             } else {
-                const folder = await gapi.client.drive.files.create({ resource: { name: 'FamilyTaskManager', mimeType: 'application/vnd.google-apps.folder' }});
+                // Only create if no folder exists at all
+                const folder = await gapi.client.drive.files.create({ 
+                    resource: { name: 'FamilyTaskManager', mimeType: 'application/vnd.google-apps.folder' }
+                });
                 appFolderId = folder.result.id;
+                console.log('Created new folder:', appFolderId);
             }
         }
 
