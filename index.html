@@ -380,7 +380,8 @@
         const CLIENT_ID = '985615448208-595ifcs5e2qpd0bbvj13tmv5lb49b4pe.apps.googleusercontent.com';
         const API_KEY = 'AIzaSyD3hAg8p-F0-qwJiplkxhaJD9Fsytzb030';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-        const FOLDER_NAME = 'FamilyTaskManager';
+        // FIXED FOLDER ID - Both users will use this exact folder
+        const SHARED_FOLDER_ID = '1QFds46G9TUy1OZyhErbTk93fdkuJAtT-';
         
         let tokenClient, accessToken, currentCategory = 'all', editingTaskId, allTasks = [], appFolderId;
         let activeStatusFilters = ['completed', 'ongoing', 'not-started'];
@@ -415,39 +416,17 @@
         }
 
         async function ensureAppFolder() {
+            // Use the specific shared folder ID - no searching needed!
+            appFolderId = SHARED_FOLDER_ID;
+            console.log('Using shared folder ID:', appFolderId);
+            
+            // Verify we have access to this folder
             try {
-                // CRITICAL: Search for ALL folders with this name
-                const resp = await gapi.client.drive.files.list({ 
-                    q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-                    fields: 'files(id, name, ownedByMe, capabilities)',
-                    pageSize: 100
-                });
-                
-                console.log('Found folders:', resp.result.files);
-                
-                if (resp.result.files && resp.result.files.length > 0) {
-                    // Use the FIRST folder found (whether owned or shared)
-                    appFolderId = resp.result.files[0].id;
-                    console.log('Using folder:', appFolderId, 'Owned:', resp.result.files[0].ownedByMe);
-                    
-                    // Delete any EXTRA folders this user created (keep only first one)
-                    for (let i = 1; i < resp.result.files.length; i++) {
-                        if (resp.result.files[i].ownedByMe) {
-                            console.log('Deleting duplicate folder:', resp.result.files[i].id);
-                            await gapi.client.drive.files.delete({ fileId: resp.result.files[i].id });
-                        }
-                    }
-                } else {
-                    // No folder exists - create one
-                    const folder = await gapi.client.drive.files.create({ 
-                        resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }
-                    });
-                    appFolderId = folder.result.id;
-                    console.log('Created new folder:', appFolderId);
-                }
+                await gapi.client.drive.files.get({ fileId: appFolderId, fields: 'id,name' });
+                console.log('Folder access confirmed!');
             } catch (error) {
-                console.error('Error with folder:', error);
-                alert('Error accessing Google Drive. Please try again.');
+                console.error('Cannot access shared folder:', error);
+                alert('Please make sure the FamilyTaskManager folder is shared with you!');
             }
         }
 
