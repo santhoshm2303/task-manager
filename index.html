@@ -364,6 +364,16 @@
                     <label>Comments</label>
                     <textarea id="comments"></textarea>
                 </div>
+                <div class="form-group">
+                    <label>📎 Documents (PDF, Word, Excel, etc.)</label>
+                    <input type="file" id="documents" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt">
+                    <div id="documentsList" style="margin-top:10px;font-size:12px;color:#666"></div>
+                </div>
+                <div class="form-group">
+                    <label>📷 Photos</label>
+                    <input type="file" id="photos" multiple accept="image/*">
+                    <div id="photosList" style="margin-top:10px;font-size:12px;color:#666"></div>
+                </div>
                 <div class="btn-group">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save</button>
@@ -427,6 +437,31 @@
             } catch (error) {
                 console.error('Cannot access shared folder:', error);
                 alert('Please make sure the FamilyTaskManager folder is shared with you!');
+            }
+        }
+
+        async function uploadFileToDrive(file) {
+            try {
+                const metadata = {
+                    name: file.name,
+                    parents: [appFolderId]
+                };
+                
+                const form = new FormData();
+                form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                form.append('file', file);
+                
+                const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + accessToken },
+                    body: form
+                });
+                
+                const result = await response.json();
+                return result.webViewLink;
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                return null;
             }
         }
 
@@ -499,6 +534,8 @@
             editingTaskId = null;
             document.getElementById('modalTitle').textContent = 'Add New Task';
             document.getElementById('taskForm').reset();
+            document.getElementById('documentsList').innerHTML = '';
+            document.getElementById('photosList').innerHTML = '';
             document.getElementById('taskModal').classList.add('active');
         }
 
@@ -509,37 +546,81 @@
 
         document.getElementById('taskForm').onsubmit = async (e) => {
             e.preventDefault();
-            const task = {
-                id: editingTaskId || Date.now().toString(),
-                category: document.getElementById('category').value,
-                status: document.getElementById('status').value,
-                taskName: document.getElementById('taskName').value,
-                subTaskName: document.getElementById('subTaskName').value,
-                taskDate: document.getElementById('taskDate').value,
-                startTime: document.getElementById('startTime').value,
-                endTime: document.getElementById('endTime').value,
-                description: document.getElementById('description').value,
-                businessName: document.getElementById('businessName').value,
-                contactNominee: document.getElementById('contactNominee').value,
-                contactEmail: document.getElementById('contactEmail').value,
-                notes: document.getElementById('notes').value,
-                comments: document.getElementById('comments').value
-            };
             
-            if (editingTaskId) {
-                const idx = allTasks.findIndex(t => t.id === editingTaskId);
-                allTasks[idx] = task;
-            } else {
-                allTasks.unshift(task);
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+            
+            try {
+                // Upload documents
+                const docFiles = document.getElementById('documents').files;
+                const docLinks = [];
+                for (let file of docFiles) {
+                    const link = await uploadFileToDrive(file);
+                    if (link) docLinks.push({ name: file.name, url: link });
+                }
+                
+                // Upload photos
+                const photoFiles = document.getElementById('photos').files;
+                const photoLinks = [];
+                for (let file of photoFiles) {
+                    const link = await uploadFileToDrive(file);
+                    if (link) photoLinks.push({ name: file.name, url: link });
+                }
+                
+                const task = {
+                    id: editingTaskId || Date.now().toString(),
+                    category: document.getElementById('category').value,
+                    status: document.getElementById('status').value,
+                    taskName: document.getElementById('taskName').value,
+                    subTaskName: document.getElementById('subTaskName').value,
+                    taskDate: document.getElementById('taskDate').value,
+                    startTime: document.getElementById('startTime').value,
+                    endTime: document.getElementById('endTime').value,
+                    description: document.getElementById('description').value,
+                    businessName: document.getElementById('businessName').value,
+                    contactNominee: document.getElementById('contactNominee').value,
+                    contactEmail: document.getElementById('contactEmail').value,
+                    notes: document.getElementById('notes').value,
+                    comments: document.getElementById('comments').value,
+                    documents: editingTaskId ? [...(allTasks.find(t => t.id === editingTaskId).documents || []), ...docLinks] : docLinks,
+                    photos: editingTaskId ? [...(allTasks.find(t => t.id === editingTaskId).photos || []), ...photoLinks] : photoLinks
+                };
+                
+                if (editingTaskId) {
+                    const idx = allTasks.findIndex(t => t.id === editingTaskId);
+                    allTasks[idx] = task;
+                } else {
+                    allTasks.unshift(task);
+                }
+                
+                await saveTasks();
+                closeModal();
+                renderTasks();
+            } catch (error) {
+                console.error('Error saving task:', error);
+                alert('Error saving task. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save';
             }
-            
-            await saveTasks();
-            closeModal();
-            renderTasks();
         };
 
         async function viewTask(id) {
             const t = allTasks.find(x => x.id === id);
+            
+            let documentsHtml = '';
+            if (t.documents && t.documents.length > 0) {
+                documentsHtml = '<p style="margin-top:10px"><strong>📎 Documents:</strong><br>' + 
+                    t.documents.map(d => `<a href="${d.url}" target="_blank" style="color:#667eea;display:block;margin:5px 0">${d.name}</a>`).join('') + '</p>';
+            }
+            
+            let photosHtml = '';
+            if (t.photos && t.photos.length > 0) {
+                photosHtml = '<p style="margin-top:10px"><strong>📷 Photos:</strong><br>' + 
+                    t.photos.map(p => `<a href="${p.url}" target="_blank" style="color:#667eea;display:block;margin:5px 0">${p.name}</a>`).join('') + '</p>';
+            }
+            
             document.getElementById('viewModalContent').innerHTML = `
                 <h2>${t.taskName}</h2>
                 ${t.subTaskName ? `<p style="color:#666">${t.subTaskName}</p>` : ''}
@@ -552,6 +633,8 @@
                 ${t.contactEmail ? `<p><strong>Email:</strong> ${t.contactEmail}</p>` : ''}
                 ${t.notes ? `<p><strong>Notes:</strong><br>${t.notes}</p>` : ''}
                 ${t.comments ? `<p><strong>Comments:</strong><br>${t.comments}</p>` : ''}
+                ${documentsHtml}
+                ${photosHtml}
                 
                 <div style="margin-top:20px"><strong>Update Status:</strong></div>
                 <div class="status-buttons">
@@ -587,6 +670,17 @@
             document.getElementById('contactEmail').value = t.contactEmail || '';
             document.getElementById('notes').value = t.notes || '';
             document.getElementById('comments').value = t.comments || '';
+            
+            // Show existing files
+            if (t.documents && t.documents.length > 0) {
+                document.getElementById('documentsList').innerHTML = '<strong>Existing:</strong><br>' + 
+                    t.documents.map(d => `<a href="${d.url}" target="_blank" style="color:#667eea">${d.name}</a>`).join('<br>');
+            }
+            if (t.photos && t.photos.length > 0) {
+                document.getElementById('photosList').innerHTML = '<strong>Existing:</strong><br>' + 
+                    t.photos.map(p => `<a href="${p.url}" target="_blank" style="color:#667eea">${p.name}</a>`).join('<br>');
+            }
+            
             closeModal();
             document.getElementById('taskModal').classList.add('active');
         }
