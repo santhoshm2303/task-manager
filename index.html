@@ -68,6 +68,101 @@
             gap: 10px;
             flex-wrap: wrap;
         }
+        
+        /* View Toggle */
+        .view-toggle {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .view-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .view-btn {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .view-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        .sort-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .sort-section select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        /* Table View */
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow-x: auto;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .tasks-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .tasks-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .tasks-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .tasks-table tr:hover {
+            background: #f8f9fa;
+        }
+        .tasks-table tr.past-task {
+            background: #f5f5f5;
+            color: #999;
+        }
+        .tasks-table tr.past-task:hover {
+            background: #ececec;
+        }
+        .table-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .table-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            background: #667eea;
+            color: white;
+        }
+        .table-btn:hover {
+            background: #5568d3;
+        }
         .status-filter-btn {
             padding: 8px 16px;
             border: 2px solid;
@@ -289,6 +384,24 @@
             </div>
         </div>
 
+        <div class="view-toggle">
+            <div class="view-buttons">
+                <button class="view-btn active" onclick="switchView('cards')" id="cardsViewBtn">📇 Cards</button>
+                <button class="view-btn" onclick="switchView('table')" id="tableViewBtn">📊 Table</button>
+            </div>
+            <div class="sort-section">
+                <label style="font-weight:600">Sort by:</label>
+                <select id="sortBy" onchange="renderTasks()">
+                    <option value="date-newest">Date (Newest First)</option>
+                    <option value="date-oldest">Date (Oldest First)</option>
+                    <option value="name-az">Name (A-Z)</option>
+                    <option value="name-za">Name (Z-A)</option>
+                    <option value="status">Status</option>
+                    <option value="category">Category</option>
+                </select>
+            </div>
+        </div>
+
         <button class="add-task-btn" id="addTaskBtn" onclick="openModal()" disabled>+ Add New Task</button>
         <div id="tasksContainer" class="tasks-grid"></div>
     </div>
@@ -399,6 +512,14 @@
         let tokenClient, accessToken, currentCategory = 'all', editingTaskId, allTasks = [], appFolderId;
         let activeStatusFilters = ['completed', 'ongoing', 'not-started'];
         let sharedFiles = []; // Store files received from share
+        let viewMode = 'cards'; // 'cards' or 'table'
+
+        function switchView(mode) {
+            viewMode = mode;
+            document.getElementById('cardsViewBtn').classList.toggle('active', mode === 'cards');
+            document.getElementById('tableViewBtn').classList.toggle('active', mode === 'table');
+            renderTasks();
+        }
 
         // Check if we received shared content
         window.addEventListener('DOMContentLoaded', async () => {
@@ -696,8 +817,45 @@
             let filtered = currentCategory === 'all' ? allTasks : allTasks.filter(t => t.category === currentCategory);
             filtered = filtered.filter(t => activeStatusFilters.includes(t.status || 'not-started'));
             
-            document.getElementById('tasksContainer').innerHTML = filtered.length ? filtered.map(t => `
-                <div class="task-card">
+            // Sort tasks
+            const sortBy = document.getElementById('sortBy')?.value || 'date-newest';
+            filtered.sort((a, b) => {
+                switch(sortBy) {
+                    case 'date-newest':
+                        return new Date(b.taskDate) - new Date(a.taskDate);
+                    case 'date-oldest':
+                        return new Date(a.taskDate) - new Date(b.taskDate);
+                    case 'name-az':
+                        return a.taskName.localeCompare(b.taskName);
+                    case 'name-za':
+                        return b.taskName.localeCompare(a.taskName);
+                    case 'status':
+                        const statusOrder = {'completed': 0, 'ongoing': 1, 'not-started': 2, 'discard': 3};
+                        return (statusOrder[a.status] || 2) - (statusOrder[b.status] || 2);
+                    case 'category':
+                        return a.category.localeCompare(b.category);
+                    default:
+                        return 0;
+                }
+            });
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (viewMode === 'table') {
+                renderTableView(filtered, today);
+            } else {
+                renderCardsView(filtered, today);
+            }
+        }
+
+        function renderCardsView(tasks, today) {
+            document.getElementById('tasksContainer').className = 'tasks-grid';
+            document.getElementById('tasksContainer').innerHTML = tasks.length ? tasks.map(t => {
+                const taskDate = new Date(t.taskDate);
+                const isPast = taskDate < today;
+                return `
+                <div class="task-card" style="${isPast ? 'opacity:0.6;background:#f5f5f5' : ''}">
                     <div class="task-header">
                         <div class="task-title">${t.taskName}</div>
                         <div class="task-category">${getCategoryLabel(t.category)}</div>
@@ -708,7 +866,55 @@
                     ${t.description ? `<div class="task-description">${t.description}</div>` : ''}
                     <button class="task-btn" onclick="viewTask('${t.id}')">View / Edit</button>
                 </div>
-            `).join('') : '<p style="color:white;text-align:center;grid-column:1/-1">No tasks match your filters</p>';
+            `;
+            }).join('') : '<p style="color:white;text-align:center;grid-column:1/-1">No tasks match your filters</p>';
+        }
+
+        function renderTableView(tasks, today) {
+            document.getElementById('tasksContainer').className = 'table-container';
+            
+            if (!tasks.length) {
+                document.getElementById('tasksContainer').innerHTML = '<p style="color:#666;text-align:center;padding:40px">No tasks match your filters</p>';
+                return;
+            }
+            
+            const tableHTML = `
+                <table class="tasks-table">
+                    <thead>
+                        <tr>
+                            <th>📋 Task</th>
+                            <th>📂 Category</th>
+                            <th>📊 Status</th>
+                            <th>📅 Date</th>
+                            <th>⏰ Time</th>
+                            <th>📝 Description</th>
+                            <th>⚙️ Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tasks.map(t => {
+                            const taskDate = new Date(t.taskDate);
+                            const isPast = taskDate < today;
+                            return `
+                            <tr class="${isPast ? 'past-task' : ''}">
+                                <td><strong>${t.taskName}</strong>${t.subTaskName ? `<br><small style="color:#999">${t.subTaskName}</small>` : ''}</td>
+                                <td>${getCategoryLabel(t.category)}</td>
+                                <td><span class="task-status status-${t.status || 'not-started'}">${getStatusLabel(t.status)}</span></td>
+                                <td>${t.taskDate}</td>
+                                <td>${t.startTime || '-'}${t.endTime ? ` - ${t.endTime}` : ''}</td>
+                                <td>${t.description ? t.description.substring(0, 50) + (t.description.length > 50 ? '...' : '') : '-'}</td>
+                                <td class="table-actions">
+                                    <button class="table-btn" onclick="viewTask('${t.id}')">👁️ View</button>
+                                    <button class="table-btn" onclick="editTask('${t.id}')">✏️ Edit</button>
+                                </td>
+                            </tr>
+                        `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById('tasksContainer').innerHTML = tableHTML;
         }
 
         function getStatusLabel(s) {
