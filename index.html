@@ -567,10 +567,11 @@
         // FIXED FOLDER ID - Both users will use this exact folder
         const SHARED_FOLDER_ID = '1QFds46G9TUy1OZyhErbTk93fdkuJAtT-';
         
-        let tokenClient, accessToken, currentCategory = 'all', editingTaskId, allTasks = [], appFolderId;
+        let tokenClient, accessToken, editingTaskId, allTasks = [], appFolderId;
         let activeStatusFilters = ['completed', 'ongoing', 'not-started'];
         let sharedFiles = []; // Store files received from share
         let viewMode = 'cards'; // 'cards' or 'table'
+        let activeTagFilters = ['all']; // Can select multiple tags to filter
 
         function switchView(mode) {
             viewMode = mode;
@@ -877,11 +878,12 @@
         function renderTasks() {
             let filtered = allTasks;
             
-            // Filter by tag
-            if (currentCategory !== 'all') {
+            // Filter by tags (multi-select)
+            if (!activeTagFilters.includes('all')) {
                 filtered = allTasks.filter(t => {
                     const taskTags = t.tags || [t.category]; // Support old tasks with just category
-                    return taskTags.includes(currentCategory);
+                    // Show task if it has ANY of the selected tags
+                    return activeTagFilters.some(selectedTag => taskTags.includes(selectedTag));
                 });
             }
             
@@ -1282,9 +1284,36 @@
 
         document.querySelectorAll('.tab').forEach(tab => {
             tab.onclick = () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                currentCategory = tab.dataset.category;
+                const clickedTag = tab.dataset.category;
+                
+                if (clickedTag === 'all') {
+                    // "All Tasks" clicked - clear all filters
+                    activeTagFilters = ['all'];
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                } else {
+                    // Remove "All Tasks" if it's active
+                    activeTagFilters = activeTagFilters.filter(t => t !== 'all');
+                    document.querySelector('.tab[data-category="all"]').classList.remove('active');
+                    
+                    // Toggle this tag
+                    if (activeTagFilters.includes(clickedTag)) {
+                        // Remove tag
+                        activeTagFilters = activeTagFilters.filter(t => t !== clickedTag);
+                        tab.classList.remove('active');
+                        
+                        // If no tags selected, go back to "All"
+                        if (activeTagFilters.length === 0) {
+                            activeTagFilters = ['all'];
+                            document.querySelector('.tab[data-category="all"]').classList.add('active');
+                        }
+                    } else {
+                        // Add tag
+                        activeTagFilters.push(clickedTag);
+                        tab.classList.add('active');
+                    }
+                }
+                
                 renderTasks();
             };
         });
