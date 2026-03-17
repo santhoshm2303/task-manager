@@ -429,26 +429,60 @@
             <form id="taskForm">
                 <div class="form-group">
                     <label>Tags (select multiple) *</label>
-                    <select id="tags" multiple size="8" required style="height:auto">
-                        <option value="travel">✈️ Travel</option>
-                        <option value="home-improvement">🏠 Home Improvement</option>
-                        <option value="kids">👶 Kids</option>
-                        <option value="school">🎓 School</option>
-                        <option value="work">💼 Work</option>
-                        <option value="home-projects">🔨 Home Projects</option>
-                        <option value="travel-plans">🗺️ Travel Plans</option>
-                        <option value="gift-card">🎁 Gift Card</option>
-                        <option value="course">📚 Course</option>
-                        <option value="reminder">⏰ Reminder</option>
-                        <option value="ato">🏛️ ATO</option>
-                        <option value="finance">💰 Finance</option>
-                        <option value="advik">👦 Advik</option>
-                        <option value="saathvik">👦 Saathvik</option>
-                        <option value="santhosh">👨 Santhosh</option>
-                        <option value="meghna">👩 Meghna</option>
-                        <option value="family">👨‍👩‍👧‍👦 Family</option>
-                    </select>
-                    <small style="color:#666;font-size:12px">Hold Ctrl (Windows) or Cmd (Mac) to select multiple</small>
+                    <div id="tagsCheckboxes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:300px;overflow-y:auto;border:1px solid #ddd;padding:10px;border-radius:5px">
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="travel" style="margin-right:8px"> ✈️ Travel
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="home-improvement" style="margin-right:8px"> 🏠 Home Improvement
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="kids" style="margin-right:8px"> 👶 Kids
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="school" style="margin-right:8px"> 🎓 School
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="work" style="margin-right:8px"> 💼 Work
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="home-projects" style="margin-right:8px"> 🔨 Home Projects
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="travel-plans" style="margin-right:8px"> 🗺️ Travel Plans
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="gift-card" style="margin-right:8px"> 🎁 Gift Card
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="course" style="margin-right:8px"> 📚 Course
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="reminder" style="margin-right:8px"> ⏰ Reminder
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="ato" style="margin-right:8px"> 🏛️ ATO
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="finance" style="margin-right:8px"> 💰 Finance
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="advik" style="margin-right:8px"> 👦 Advik
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="saathvik" style="margin-right:8px"> 👦 Saathvik
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="santhosh" style="margin-right:8px"> 👨 Santhosh
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="meghna" style="margin-right:8px"> 👩 Meghna
+                        </label>
+                        <label style="display:flex;align-items:center;cursor:pointer">
+                            <input type="checkbox" name="tags" value="family" style="margin-right:8px"> 👨‍👩‍👧‍👦 Family
+                        </label>
+                    </div>
+                    <small style="color:#666;font-size:12px">Select as many tags as needed</small>
                 </div>
                 <div class="form-group">
                     <label>Status</label>
@@ -995,6 +1029,11 @@
             document.getElementById('documentsList').innerHTML = '';
             document.getElementById('photosList').innerHTML = '';
             
+            // Uncheck all tag checkboxes
+            document.querySelectorAll('input[name="tags"]').forEach(cb => {
+                cb.checked = false;
+            });
+            
             // If we have shared content, pre-fill the form
             if (useSharedContent && window.sharedContent) {
                 const shared = window.sharedContent;
@@ -1073,9 +1112,15 @@
             submitBtn.textContent = 'Saving...';
             
             try {
-                // Get selected tags
-                const tagsSelect = document.getElementById('tags');
-                const selectedTags = Array.from(tagsSelect.selectedOptions).map(opt => opt.value);
+                // Get selected tags from checkboxes
+                const selectedTags = Array.from(document.querySelectorAll('input[name="tags"]:checked')).map(cb => cb.value);
+                
+                if (selectedTags.length === 0) {
+                    alert('Please select at least one tag');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Save';
+                    return;
+                }
                 
                 // Upload documents
                 const docFiles = document.getElementById('documents').files;
@@ -1187,11 +1232,10 @@
             editingTaskId = id;
             document.getElementById('modalTitle').textContent = 'Edit Task';
             
-            // Pre-select tags
-            const tagsSelect = document.getElementById('tags');
+            // Check the appropriate tag checkboxes
             const taskTags = t.tags || [t.category]; // Support old tasks
-            Array.from(tagsSelect.options).forEach(opt => {
-                opt.selected = taskTags.includes(opt.value);
+            document.querySelectorAll('input[name="tags"]').forEach(cb => {
+                cb.checked = taskTags.includes(cb.value);
             });
             
             document.getElementById('status').value = t.status || 'not-started';
